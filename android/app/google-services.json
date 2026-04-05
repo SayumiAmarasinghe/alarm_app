@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "494627254798",
+    "project_id": "alarmapp-efe74",
+    "storage_bucket": "alarmapp-efe74.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:494627254798:android:f99511877927cdddc8025f",
+        "android_client_info": {
+          "package_name": "com.example.alarm_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "494627254798-rmo1hf6gb11s5qkp2gldofhkvmvcfj2a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.alarm_app",
+            "certificate_hash": "ec205b6a050251b012e560d7746e897f17452b58"
+          }
+        },
+        {
+          "client_id": "494627254798-3cbm4sthtg8ghutluvd2res7j4b0tjn7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqsGX7kgTu5mkNx0CwJXyPd0PFirKM_Ew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "494627254798-3cbm4sthtg8ghutluvd2res7j4b0tjn7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "494627254798-0l80ib10t19e75sdn99mnt4k9mtodmjo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.alarmApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

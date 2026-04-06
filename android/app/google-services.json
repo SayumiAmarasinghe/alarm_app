@@ -48,6 +48,42 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:494627254798:android:89a19c6cf1d718edc8025f",
+        "android_client_info": {
+          "package_name": "com.syncrise.alarm_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "494627254798-3cbm4sthtg8ghutluvd2res7j4b0tjn7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqsGX7kgTu5mkNx0CwJXyPd0PFirKM_Ew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "494627254798-3cbm4sthtg8ghutluvd2res7j4b0tjn7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "494627254798-0l80ib10t19e75sdn99mnt4k9mtodmjo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.alarmApp"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

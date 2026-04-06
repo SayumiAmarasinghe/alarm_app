@@ -8,8 +8,17 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.io.FileInputStream
+        import java.util.Properties
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace = "com.example.alarm_app"
+    namespace = "com.syncrise.alarm_app"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +33,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.alarm_app"
+        applicationId = "com.syncrise.alarm_app"
         minSdk = flutter.minSdkVersion // (Leave this as whatever it currently is!)
         targetSdk = 34 // <--- CHANGE THIS TO 34
         versionCode = 1
@@ -32,12 +41,23 @@ android {
         manifestPlaceholders["redirectSchemeName"] = "alarmapp"
         manifestPlaceholders["redirectHostName"] = "callback"
     }
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            val storeFilePath = keystoreProperties.getProperty("storeFile")
+            if (storeFilePath != null) {
+                storeFile = file(storeFilePath)
+            }
+            storePassword = keystoreProperties.getProperty("storePassword")
+        }
+    }
 
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

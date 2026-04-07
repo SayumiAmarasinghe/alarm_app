@@ -35,7 +35,7 @@ android {
     defaultConfig {
         applicationId = "com.syncrise.alarm_app"
         minSdk = flutter.minSdkVersion // (Leave this as whatever it currently is!)
-        targetSdk = 34 // <--- CHANGE THIS TO 34
+        targetSdk = 35 // <--- CHANGE THIS TO 34
         versionCode = 1
         versionName = "1.0"
         manifestPlaceholders["redirectSchemeName"] = "alarmapp"
@@ -54,10 +54,11 @@ android {
     }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+        getByName("release") {
             signingConfig = signingConfigs.getByName("release")
+
+            // ADD THIS LINE:
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

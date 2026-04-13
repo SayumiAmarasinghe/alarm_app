@@ -28,16 +28,14 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+
 
     defaultConfig {
         applicationId = "com.syncrise.alarm_app"
         minSdk = flutter.minSdkVersion // (Leave this as whatever it currently is!)
         targetSdk = 35 // <--- CHANGE THIS TO 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.0.3"
         manifestPlaceholders["redirectSchemeName"] = "alarmapp"
         manifestPlaceholders["redirectHostName"] = "callback"
     }
@@ -59,6 +57,11 @@ android {
 
             // ADD THIS LINE:
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 }

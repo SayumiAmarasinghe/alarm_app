@@ -9,7 +9,7 @@ class AlarmService {
   Future<void> init(Function(String?) onAlarmFired) async {
     tz.initializeTimeZones();
 
-    const AndroidInitializationSettings androidInitSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidInitSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
     const InitializationSettings initSettings = InitializationSettings(android: androidInitSettings);
 
     await _notificationsPlugin.initialize(

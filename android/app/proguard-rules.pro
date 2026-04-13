@@ -7,3 +7,8 @@
 
 # Keep Flutter wrapper safe
 -keep class io.flutter.plugins.** { *; }
+# Flutter Local Notifications & Gson rules
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.google.gson.** { *; }
+-keep class com.dexterous.flutterlocalnotifications.** { *; }

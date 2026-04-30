@@ -131,7 +131,7 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
   }
 
   Future<void> _pickRepeat() async {
-    final options = ['Never', 'Everyday', 'Weekdays', 'Weekends'];
+    final options = ['Never', 'Everyday', 'Weekdays', 'Weekends', 'Every Monday', 'Every Tuesday', 'Every Wednesday', 'Every Thursday', 'Every Friday', 'Every Saturday', 'Every Sunday'];
     final selected = await showDialog<String>(
         context: context,
         builder: (context) => SimpleDialog(
@@ -153,6 +153,39 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
     setState(() {
       _selectedTime = _selectedTime.replacing(hour: newHour);
     });
+  }
+
+  // --- NEW: Calculate the exact next target date based on repeat option ---
+  DateTime _getNextAlarmDateTime() {
+    final now = DateTime.now();
+    DateTime target = DateTime(now.year, now.month, now.day, _selectedTime.hour, _selectedTime.minute);
+
+    // If 'Never', we respect the exact date the user picked in the UI
+    if (_repeatOption == 'Never') {
+      return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedTime.hour, _selectedTime.minute);
+    }
+
+    // Check up to 7 days in the future to find the next valid match
+    for (int i = 0; i <= 7; i++) {
+      DateTime candidate = target.add(Duration(days: i));
+
+      // Skip if the time has already passed for this specific day
+      if (candidate.isBefore(now)) continue;
+
+      // Match the weekday based on ISO 8601 (1 = Monday, 7 = Sunday)
+      if (_repeatOption == 'Everyday') return candidate;
+      if (_repeatOption == 'Weekdays' && candidate.weekday >= 1 && candidate.weekday <= 5) return candidate;
+      if (_repeatOption == 'Weekends' && (candidate.weekday == 6 || candidate.weekday == 7)) return candidate;
+      if (_repeatOption == 'Every Monday' && candidate.weekday == 1) return candidate;
+      if (_repeatOption == 'Every Tuesday' && candidate.weekday == 2) return candidate;
+      if (_repeatOption == 'Every Wednesday' && candidate.weekday == 3) return candidate;
+      if (_repeatOption == 'Every Thursday' && candidate.weekday == 4) return candidate;
+      if (_repeatOption == 'Every Friday' && candidate.weekday == 5) return candidate;
+      if (_repeatOption == 'Every Saturday' && candidate.weekday == 6) return candidate;
+      if (_repeatOption == 'Every Sunday' && candidate.weekday == 7) return candidate;
+    }
+
+    return target; // Fallback
   }
 
   // --- 4. FIREBASE SAVE LOGIC ---
@@ -198,8 +231,8 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
         docRef = await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('alarms').add(alarmData);
       }
 
-      final now = DateTime.now();
-      DateTime scheduledDateTime = DateTime(now.year, now.month, now.day, _selectedTime.hour, _selectedTime.minute);
+      // 🚨 UPDATED: Calculate the exact next occurrence for the OS scheduler
+      DateTime scheduledDateTime = _getNextAlarmDateTime();
 
       // Because we use docRef.id.hashCode, if we are editing an existing alarm,
       // this generates the exact same integer ID as before, causing the Android OS
@@ -243,7 +276,6 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // 🚨 NEW: Dynamic Title
         title: Text(widget.existingAlarmId != null ? 'Edit Alarm' : 'New Alarm'),
         backgroundColor: Colors.transparent,
         elevation: 0,

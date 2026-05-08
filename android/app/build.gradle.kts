@@ -34,8 +34,8 @@ android {
         applicationId = "com.syncrise.alarm_app"
         minSdk = flutter.minSdkVersion // (Leave this as whatever it currently is!)
         targetSdk = 35 // <--- CHANGE THIS TO 34
-        versionCode = 5
-        versionName = "1.0.5"
+        versionCode = 6
+        versionName = "1.0.6"
         manifestPlaceholders["redirectSchemeName"] = "alarmapp"
         manifestPlaceholders["redirectHostName"] = "callback"
     }

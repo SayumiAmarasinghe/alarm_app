@@ -6,7 +6,6 @@ import '../services/audio_media_service.dart';
 import '../services/alarm_service.dart';
 
 class AlarmConfigScreen extends StatefulWidget {
-  // 🚨 NEW: Optional parameters for editing!
   final String? existingAlarmId;
   final Map<String, dynamic>? existingAlarmData;
 
@@ -30,9 +29,11 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
   bool _requiresMathChallenge = true;
   double _rampDuration = 90.0;
   bool _isSaving = false;
-
   bool _is24HourFormat = false;
-  bool _isSpotifyConnected = false;
+
+  // 🚨 NEW: Split Spotify state into Global Auth vs. This Specific Alarm
+  bool _hasLinkedSpotifyAccount = false;
+  bool _useSpotify = false;
 
   final TextEditingController _spotifyUrlController = TextEditingController();
   final AudioMediaService _audioService = AudioMediaService();
@@ -43,7 +44,7 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
   void initState() {
     super.initState();
     _loadPreferences();
-    _prefillExistingData(); // 🚨 NEW: Check if we are editing!
+    _prefillExistingData();
   }
 
   @override
@@ -52,12 +53,10 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
     super.dispose();
   }
 
-  // 🚨 NEW: Pre-fill data if an alarm was passed in
   void _prefillExistingData() {
     if (widget.existingAlarmData != null) {
       final data = widget.existingAlarmData!;
 
-      // Parse the saved time string (e.g. "06:30") back into a TimeOfDay
       final timeParts = data['time'].split(':');
       _selectedTime = TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1]));
 
@@ -68,9 +67,9 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
       _requiresMathChallenge = data['requiresMathChallenge'] ?? true;
       _rampDuration = (data['rampDurationSeconds'] ?? 90).toDouble();
 
-      // Check if it was a Spotify alarm
+      // 🚨 UPDATED: Only toggle Spotify ON if this specific alarm was saved as a Spotify alarm
       if (data['mediaType'] == 'spotify') {
-        _isSpotifyConnected = true;
+        _useSpotify = true;
         if (data['mediaUri'] != null) {
           _spotifyUrlController.text = data['mediaUri'];
         }
@@ -83,11 +82,8 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
     if (mounted) {
       setState(() {
         _is24HourFormat = prefs.getBool('is24HourTime') ?? false;
-
-        // Only load the global Spotify pref if we AREN'T currently editing a Spotify alarm
-        if (widget.existingAlarmData?['mediaType'] != 'spotify') {
-          _isSpotifyConnected = prefs.getBool('isSpotifyConnected') ?? false;
-        }
+        // Check if the user has ever linked their account globally
+        _hasLinkedSpotifyAccount = prefs.getBool('isSpotifyConnected') ?? false;
       });
     }
   }
@@ -98,7 +94,12 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
     if (connected) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isSpotifyConnected', true);
-      setState(() => _isSpotifyConnected = true);
+      if (mounted) {
+        setState(() {
+          _hasLinkedSpotifyAccount = true;
+          _useSpotify = true; // Turn the toggle ON for this alarm
+        });
+      }
     }
 
     if (mounted) {
@@ -155,24 +156,18 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
     });
   }
 
-  // --- NEW: Calculate the exact next target date based on repeat option ---
   DateTime _getNextAlarmDateTime() {
     final now = DateTime.now();
     DateTime target = DateTime(now.year, now.month, now.day, _selectedTime.hour, _selectedTime.minute);
 
-    // If 'Never', we respect the exact date the user picked in the UI
     if (_repeatOption == 'Never') {
       return DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedTime.hour, _selectedTime.minute);
     }
 
-    // Check up to 7 days in the future to find the next valid match
     for (int i = 0; i <= 7; i++) {
       DateTime candidate = target.add(Duration(days: i));
-
-      // Skip if the time has already passed for this specific day
       if (candidate.isBefore(now)) continue;
 
-      // Match the weekday based on ISO 8601 (1 = Monday, 7 = Sunday)
       if (_repeatOption == 'Everyday') return candidate;
       if (_repeatOption == 'Weekdays' && candidate.weekday >= 1 && candidate.weekday <= 5) return candidate;
       if (_repeatOption == 'Weekends' && (candidate.weekday == 6 || candidate.weekday == 7)) return candidate;
@@ -184,8 +179,7 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
       if (_repeatOption == 'Every Saturday' && candidate.weekday == 6) return candidate;
       if (_repeatOption == 'Every Sunday' && candidate.weekday == 7) return candidate;
     }
-
-    return target; // Fallback
+    return target;
   }
 
   // --- 4. FIREBASE SAVE LOGIC ---
@@ -199,7 +193,7 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
       final String formattedTime = '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}';
 
       String parsedUri = '';
-      if (_isSpotifyConnected && _spotifyUrlController.text.isNotEmpty) {
+      if (_useSpotify && _spotifyUrlController.text.isNotEmpty) {
         String input = _spotifyUrlController.text;
         if (input.startsWith('spotify:track:')) {
           parsedUri = input;
@@ -215,14 +209,13 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
         'volumeRamping': _volumeRamping,
         'vibration': _vibration,
         'rampDurationSeconds': _rampDuration.toInt(),
-        'mediaType': _isSpotifyConnected ? 'spotify' : 'local',
+        'mediaType': _useSpotify ? 'spotify' : 'local', // 🚨 Use specific toggle
         'mediaUri': parsedUri,
         'requiresMathChallenge': _requiresMathChallenge,
         'isActive': true,
-        'createdAt': widget.existingAlarmId == null ? FieldValue.serverTimestamp() : widget.existingAlarmData!['createdAt'], // Preserve original creation date if editing
+        'createdAt': widget.existingAlarmId == null ? FieldValue.serverTimestamp() : widget.existingAlarmData!['createdAt'],
       };
 
-      // 🚨 NEW: UPDATE IF EDITING, ADD IF NEW
       DocumentReference docRef;
       if (widget.existingAlarmId != null) {
         docRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('alarms').doc(widget.existingAlarmId);
@@ -231,21 +224,17 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
         docRef = await FirebaseFirestore.instance.collection('users').doc(user.uid).collection('alarms').add(alarmData);
       }
 
-      // 🚨 UPDATED: Calculate the exact next occurrence for the OS scheduler
       DateTime scheduledDateTime = _getNextAlarmDateTime();
-
-      // Because we use docRef.id.hashCode, if we are editing an existing alarm,
-      // this generates the exact same integer ID as before, causing the Android OS
-      // to seamlessly overwrite the old scheduled alarm with the new time!
       final int alarmId = docRef.id.hashCode;
-      final String payloadData = "${docRef.id}|${_isSpotifyConnected ? 'spotify' : 'local'}|$parsedUri|$_requiresMathChallenge";
+      final String payloadData = "${docRef.id}|${_useSpotify ? 'spotify' : 'local'}|$parsedUri|$_requiresMathChallenge";
 
       final alarmService = AlarmService();
       await alarmService.scheduleAlarm(
         id: alarmId,
         scheduledTime: scheduledDateTime,
         payload: payloadData,
-        isSpotify: _isSpotifyConnected,
+        isSpotify: _useSpotify,
+        repeatOption: _repeatOption,
       );
 
       if (mounted) Navigator.pop(context);
@@ -358,7 +347,7 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
 
           const SizedBox(height: 16),
 
-          // SPOTIFY INTEGRATION SECTION
+          // 🚨 UPDATED: SPOTIFY INTEGRATION SECTION
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20)),
@@ -368,32 +357,38 @@ class _AlarmConfigScreenState extends State<AlarmConfigScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Alarm Sound', style: TextStyle(fontSize: 16)),
-                    Text(_isSpotifyConnected ? 'Spotify' : 'Default', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Icon(
+                            Icons.music_note,
+                            color: _useSpotify ? const Color(0xFF1DB954) : Colors.grey
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Spotify Audio', style: TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                    Switch(
+                      value: _useSpotify,
+                      activeColor: Colors.white,
+                      activeTrackColor: const Color(0xFF1DB954), // Spotify Green
+                      onChanged: (val) async {
+                        if (val) {
+                          // Attempt to turn Spotify ON
+                          if (!_hasLinkedSpotifyAccount) {
+                            await _connectToSpotify();
+                          } else {
+                            setState(() => _useSpotify = true);
+                          }
+                        } else {
+                          // Turn Spotify OFF
+                          setState(() => _useSpotify = false);
+                        }
+                      },
+                    ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSpotifyConnected ? null : _connectToSpotify,
-                    icon: Icon(
-                        _isSpotifyConnected ? Icons.check_circle : Icons.music_note,
-                        color: Colors.white
-                    ),
-                    label: Text(
-                        _isSpotifyConnected ? 'Spotify Linked' : 'Link Spotify Account',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isSpotifyConnected ? Colors.grey[800] : const Color(0xFF1DB954),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
 
-                if (_isSpotifyConnected) ...[
+                if (_useSpotify) ...[
                   const SizedBox(height: 16),
                   TextField(
                     controller: _spotifyUrlController,
